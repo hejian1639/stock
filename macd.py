@@ -4,6 +4,7 @@
 import tushare
 import pandas as pd
 import time
+import sqlite3
 
 
 def getstartdate(code):
@@ -71,6 +72,24 @@ if __name__ == '__main__':
     index
     filename
     """
+    conn = sqlite3.connect('stock.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE STOCK
+           (CODE        VARCHAR(8)      NOT NULL,
+            DATE        DATE            NOT NULL,
+            OPEN        REAL,
+            HIGH        REAL,
+            CLOSE       REAL,
+            LOW         REAL,
+            VOLUME      BIGINT,
+            AMOUNT      BIGINT,
+            DIFF        REAL,
+            DEA         REAL,
+            MACD        REAL);''')
+    conn.commit()
+
+    conn.close()
+
     stocks = tushare.get_stock_basics()
 
     results = None
