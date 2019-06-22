@@ -7,7 +7,7 @@ import pandas as pd
 import time
 import sqlite3
 
-from sqlalchemy import Column, String, create_engine, Integer, Date
+from sqlalchemy import Column, String, create_engine, Integer, Date, Float
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -19,34 +19,38 @@ def getstartdate(code):
     return date
 
 
-def get_EMA(df, N):
-    # print(df)
-    # df['ema'] = None
+def get_EMA(df, N, ema0):
     ema = [0] * len(df)
 
     for i in range(len(df)):
         if i == 0:
-            ema[i] = df.iloc[i]['close']
+            if ema0 is None:
+                ema[i] = df.iloc[i]['close']
+            else:
+                ema[i] = (2 * df.iloc[i]['close'] + (N - 1) * ema0) / (N + 1)
         else:
             ema[i] = (2 * df.iloc[i]['close'] + (N - 1) * ema[i - 1]) / (N + 1)
 
     return ema
 
 
-def get_MACD(df, short=12, long=26, M=9):
-    a = get_EMA(df, short)
-    b = get_EMA(df, long)
+def get_MACD(df, short=12, long=26, M=9, ema_short0=None, ema_long0=None, dea0=None):
+    ema_short = get_EMA(df, short, ema_short0)
+    ema_long = get_EMA(df, long, ema_long0)
     ema = pd.DataFrame()
-    ema['a'] = a
-    ema['b'] = b
+    df['ema_short'] = ema_short
+    df['ema_long'] = ema_long
 
-    df['diff'] = ema['a'] - ema['b']
+    df['diff'] = df['ema_short'] - df['ema_long']
     # print(df)
     dea = [0] * len(df)
 
     for i in range(len(df)):
         if i == 0:
-            dea[i] = df.iloc[i]['diff']
+            if dea0 is None:
+                dea[i] = df.iloc[i]['diff']
+            else:
+                dea[i] = (2 * df.iloc[i]['diff'] + (M - 1) * dea0) / (M + 1)
         else:
             dea[i] = (2 * df.iloc[i]['diff'] + (M - 1) * dea[i - 1]) / (M + 1)
 
@@ -88,6 +92,9 @@ class Stock(Base):
     code = Column(String(8), primary_key=True)
     # 指定name映射到name字段; name字段为字符串类形，
     date = Column(Date)
+    ema_short = Column(Float)
+    ema_long = Column(Float)
+    dea = Column(Float)
 
     def __repr__(self):
         return "<Stock(code=%s, date=%s)>" % (self.code, self.date)
@@ -107,6 +114,8 @@ if __name__ == '__main__':
             LOW         REAL,
             VOLUME      BIGINT,
             AMOUNT      BIGINT,
+            EMA_SHORT   REAL,
+            EMA_LONG    REAL,
             DIFF        REAL,
             DEA         REAL,
             MACD        REAL);''')
@@ -119,13 +128,9 @@ if __name__ == '__main__':
 
     stocks = tushare.get_stock_basics()
 
-    # results = None
-    # start date
-    # start_date = '2019-01-01'
-
-    begin_ticks = time.time()
-    begin_ticks = begin_ticks / one_day * one_day - one_day
-    localtime = time.localtime(begin_ticks)
+    end_ticks = time.time()
+    end_ticks = end_ticks / one_day * one_day - one_day
+    localtime = time.localtime(end_ticks)
     # end date
     end_date = time.strftime("%Y-%m-%d", localtime)
 
@@ -143,12 +148,14 @@ if __name__ == '__main__':
 
         start_date = '2019-01-01'
         if max_date:
-            end_ticks = datetime.strptime(str(max_date.date), '%Y-%m-%d').timestamp()
-            end_ticks += one_day
+            print(max_date)
+            begin_ticks = datetime.strptime(str(max_date.date), '%Y-%m-%d').timestamp()
+            begin_ticks += one_day
             if begin_ticks > end_ticks:
                 continue
 
-            start_date = str(max_date.date)
+            localtime = time.localtime(begin_ticks)
+            start_date = time.strftime("%Y-%m-%d", localtime)
 
         result = tushare.get_h_data(code=code, index=True, start=start_date, end=end_date)
         if result.empty:
@@ -157,13 +164,18 @@ if __name__ == '__main__':
         result = result.sort_index()
         result['code'] = code
         result = result.reset_index()
-        get_MACD(result, 12, 26, 9)
+
+        if max_date:
+            get_MACD(result, 12, 26, 9, max_date.ema_short, max_date.ema_long, max_date.dea)
+        else:
+            get_MACD(result, 12, 26, 9)
+
         print(result)
 
         # result.to_csv('stock.csv', mode='a', header=count == 0, index=False)
         result.to_sql('stock', con=engine, if_exists='append', index=False)
 
-        # count += 1
+        count += 1
         # if count == 3:
         #     break
         # time.sleep(20)
