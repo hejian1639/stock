@@ -157,7 +157,14 @@ if __name__ == '__main__':
             localtime = time.localtime(begin_ticks)
             start_date = time.strftime("%Y-%m-%d", localtime)
 
-        result = tushare.get_h_data(code=code, index=True, start=start_date, end=end_date)
+        while True:
+            try:
+                result = tushare.get_h_data(code=code, index=True, start=start_date, end=end_date)
+                if result.empty:
+                    break
+            except IOError as e:
+                print(e)
+                time.sleep(10 * 60)
         if result.empty:
             continue
 
@@ -166,9 +173,9 @@ if __name__ == '__main__':
         result = result.reset_index()
 
         if max_date:
-            get_MACD(result, 12, 26, 9, max_date.ema_short, max_date.ema_long, max_date.dea)
+            get_MACD(result, 9, 13, 8, max_date.ema_short, max_date.ema_long, max_date.dea)
         else:
-            get_MACD(result, 12, 26, 9)
+            get_MACD(result, 9, 13, 8)
 
         print(result)
 
