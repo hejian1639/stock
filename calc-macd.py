@@ -184,3 +184,4 @@ if __name__ == '__main__':
 
     # save data to csv
     # results.to_csv('stock.csv', mode='w')
+    session.close()
