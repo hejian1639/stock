@@ -102,93 +102,94 @@ class Stock(Base):
 
 one_day = 24 * 60 * 60
 
-if __name__ == '__main__':
-    conn = sqlite3.connect('stock.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS STOCK
-           (CODE        VARCHAR(8)      NOT NULL,
-            DATE        DATE            NOT NULL,
-            OPEN        REAL,
-            HIGH        REAL,
-            CLOSE       REAL,
-            LOW         REAL,
-            VOLUME      BIGINT,
-            AMOUNT      BIGINT,
-            EMA_SHORT   REAL,
-            EMA_LONG    REAL,
-            DIFF        REAL,
-            DEA         REAL,
-            MACD        REAL);''')
-    conn.commit()
+conn = sqlite3.connect('stock.db')
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS STOCK
+       (CODE        VARCHAR(8)      NOT NULL,
+        DATE        DATE            NOT NULL,
+        OPEN        REAL,
+        HIGH        REAL,
+        CLOSE       REAL,
+        LOW         REAL,
+        VOLUME      BIGINT,
+        AMOUNT      BIGINT,
+        EMA_SHORT   REAL,
+        EMA_LONG    REAL,
+        DIFF        REAL,
+        DEA         REAL,
+        MACD        REAL);''')
+conn.commit()
 
-    conn.close()
+conn.close()
 
-    # 初始化数据库连接:
-    engine = create_engine('sqlite:///stock.db')
+# 初始化数据库连接:
+engine = create_engine('sqlite:///stock.db')
 
-    stocks = tushare.get_stock_basics()
+stocks = tushare.get_stock_basics()
 
-    end_ticks = time.time()
-    end_ticks = end_ticks / one_day * one_day - one_day
-    localtime = time.localtime(end_ticks)
-    # end date
-    end_date = time.strftime("%Y-%m-%d", localtime)
+end_ticks = time.time()
+end_ticks = end_ticks / one_day * one_day - one_day
+localtime = time.localtime(end_ticks)
+# end date
+end_date = time.strftime("%Y-%m-%d", localtime)
 
-    # engine是2.2中创建的连接
-    Session = sessionmaker(bind=engine)
+# engine是2.2中创建的连接
+Session = sessionmaker(bind=engine)
 
-    # 创建Session类实例
-    session = Session()
+# 创建Session类实例
+session = Session()
 
-    count = 0
-    for code, row in stocks.iterrows():
-        print(row.name)
+print(time.strftime("%H:%M:%S", time.localtime()))
 
-        max_date = session.query(Stock).filter_by(code=code).order_by(Stock.date.desc()).first()
+count = 0
+for code, row in stocks.iterrows():
+    print(row.name)
 
-        start_date = '2019-01-01'
-        if max_date:
-            print(max_date)
-            begin_ticks = datetime.strptime(str(max_date.date), '%Y-%m-%d').timestamp()
-            begin_ticks += one_day
-            if begin_ticks > end_ticks:
-                continue
+    max_date = session.query(Stock).filter_by(code=code).order_by(Stock.date.desc()).first()
 
-            localtime = time.localtime(begin_ticks)
-            start_date = time.strftime("%Y-%m-%d", localtime)
-
-        while True:
-            try:
-                result = tushare.get_h_data(code=code, index=True, start=start_date, end=end_date)
-                if result.empty:
-                    break
-            except IOError as e:
-                print(e)
-                time.sleep(10 * 60)
-        if result.empty:
+    start_date = '2019-01-01'
+    if max_date:
+        print(max_date)
+        begin_ticks = datetime.strptime(str(max_date.date), '%Y-%m-%d').timestamp()
+        begin_ticks += one_day
+        if begin_ticks > end_ticks:
             continue
 
-        result = result.sort_index()
-        result['code'] = code
-        result = result.reset_index()
+        localtime = time.localtime(begin_ticks)
+        start_date = time.strftime("%Y-%m-%d", localtime)
 
-        if max_date:
-            get_MACD(result, 9, 13, 8, max_date.ema_short, max_date.ema_long, max_date.dea)
-        else:
-            get_MACD(result, 9, 13, 8)
+    while True:
+        try:
+            result = tushare.get_h_data(code=code, index=True, start=start_date, end=end_date)
+            break
+        except IOError as e:
+            print(e)
+            time.sleep(10 * 60)
+            print(time.strftime("%H:%M:%S", time.localtime()))
+    if result.empty:
+        continue
 
-        print(result)
+    result = result.sort_index()
+    result['code'] = code
+    result = result.reset_index()
 
-        # result.to_csv('stock.csv', mode='a', header=count == 0, index=False)
-        result.to_sql('stock', con=engine, if_exists='append', index=False)
+    if max_date:
+        get_MACD(result, 9, 13, 8, max_date.ema_short, max_date.ema_long, max_date.dea)
+    else:
+        get_MACD(result, 9, 13, 8)
 
-        count += 1
-        # if count == 3:
-        #     break
-        # time.sleep(20)
+    print(result)
 
-    # print(results)
+    # result.to_csv('stock.csv', mode='a', header=count == 0, index=False)
+    result.to_sql('stock', con=engine, if_exists='append', index=False)
 
-    # save data to csv
-    # results.to_csv('stock.csv', mode='w')
-    session.close()
+    count += 1
+    # if count == 3:
+    #     break
+    # time.sleep(20)
+
+# print(results)
+
+# save data to csv
+# results.to_csv('stock.csv', mode='w')
+session.close()
