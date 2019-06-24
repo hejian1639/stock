@@ -143,7 +143,9 @@ print(time.strftime("%H:%M:%S", time.localtime()))
 
 count = 0
 for code, row in stocks.iterrows():
-    print(row.name)
+    count += 1
+    print("No. " + count)
+    print('code: ' + code)
 
     max_date = session.query(Stock).filter_by(code=code).order_by(Stock.date.desc()).first()
 
@@ -163,6 +165,7 @@ for code, row in stocks.iterrows():
             result = tushare.get_h_data(code=code, index=True, start=start_date, end=end_date)
             break
         except IOError as e:
+            print(time.strftime("%H:%M:%S", time.localtime()))
             print(e)
             time.sleep(10 * 60)
             print(time.strftime("%H:%M:%S", time.localtime()))
@@ -183,7 +186,6 @@ for code, row in stocks.iterrows():
     # result.to_csv('stock.csv', mode='a', header=count == 0, index=False)
     result.to_sql('stock', con=engine, if_exists='append', index=False)
 
-    count += 1
     # if count == 3:
     #     break
     # time.sleep(20)
