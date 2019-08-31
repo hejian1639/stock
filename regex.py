@@ -26,10 +26,12 @@ y_data = np.hstack(y_data).reshape(-1, 1)
 plt.scatter(data[:, 0], data[:, 1], c=label, edgecolor="white")
 plt.show()
 
+losses = []
+
 
 def get_weight(shape, lambda1):
     var = tf.Variable(tf.random_normal(shape), dtype=tf.float32)
-    tf.add_to_collection('losses', tf.contrib.layers.l2_regularizer(lambda1)(var))
+    losses.append(tf.contrib.layers.l2_regularizer(lambda1)(var))
     return var
 
 
@@ -57,8 +59,9 @@ y = cur_layer
 
 # 损失函数的定义。
 mse_loss = tf.reduce_sum(tf.square(y_ - y)) / sample_size
-tf.add_to_collection('losses', mse_loss)
-loss = tf.add_n(tf.get_collection('losses'))
+mse_loss = tf.reduce_mean(tf.square(y_ - y))
+losses.append(mse_loss)
+loss = tf.add_n(losses)
 
 # 定义训练的目标函数mse_loss，训练次数及训练模型
 train_op = tf.train.AdamOptimizer(0.001).minimize(mse_loss)
