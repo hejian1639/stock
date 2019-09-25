@@ -1,0 +1,63 @@
+#!/usr/bin/expect
+
+set ip  [lindex $argv 0]
+set user  root
+set passwd  [lindex $argv 1]
+
+set timeout -1
+
+
+spawn scp config.json $user@$ip:/root
+expect {
+  "continue connecting" {send "yes\r";exp_continue}
+  "Username" {send "$user\r";exp_continue}
+  "Password" {send "$passwd\r"}
+  "password" {send "$passwd\r"}
+}
+expect eof
+
+spawn scp init.sh $user@$ip:/root
+expect {
+  "continue connecting" {send "yes\r";exp_continue}
+  "Username" {send "$user\r";exp_continue}
+  "Password" {send "$passwd\r"}
+  "password" {send "$passwd\r"}
+}
+expect eof
+
+spawn scp kill-process.sh $user@$ip:/root
+expect {
+  "continue connecting" {send "yes\r";exp_continue}
+  "Username" {send "$user\r";exp_continue}
+  "Password" {send "$passwd\r"}
+  "password" {send "$passwd\r"}
+}
+expect eof
+
+spawn scp json-read.py $user@$ip:/root
+expect {
+  "continue connecting" {send "yes\r";exp_continue}
+  "Username" {send "$user\r";exp_continue}
+  "Password" {send "$passwd\r"}
+  "password" {send "$passwd\r"}
+}
+expect eof
+
+
+spawn ssh $user@$ip
+
+expect {
+  "continue connecting" {send "yes\r";exp_continue}
+  "Username" {send "$user\r";exp_continue}
+  "Password" {send "$passwd\r"}
+  "password" {send "$passwd\r"}
+}
+
+expect "#"
+send "chmod +x init.sh\r"
+
+expect "#"
+send "./init.sh\r"
+
+expect "initial finished"
+
