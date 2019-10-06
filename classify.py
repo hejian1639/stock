@@ -13,6 +13,13 @@ import matplotlib.pyplot as plt
 rdm = RandomState(1)
 X = rdm.rand(100, 2)
 Y = [[int(x1 + x2 < 1)] for (x1, x2) in X]
+label = []
+
+for (x1, x2) in X:
+    if int(x1 + x2 < 1):
+        label.append('r')
+    else:
+        label.append('b')
 
 x = tf.placeholder(tf.float32, shape=(None, 2), name="x-input")
 y = tf.placeholder(tf.float32, name='y-input')
@@ -47,7 +54,8 @@ for step in range(100):
     # sess.run(train)
     if step % 10 == 0:
         plt.cla()
-        plt.scatter(X[:, 0], X[:, 1])
+        # plt.scatter(X[:, 0], X[:, 1])
+        plt.scatter(X[:, 0], X[:, 1], c=label, edgecolor="white")
         w = sess.run(weight)
         b = sess.run(biase)
         print("step = {}, weight = {}, biase = {}".format(step, w, b))
