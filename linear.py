@@ -6,49 +6,58 @@
 """
 Please note, this code is only for python 3+. If you are using python 2+, please modify the code accordingly.
 """
-# from __future__ import print_function
-import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
 
+length = 100
 # create data
-x_data = np.random.rand(110).astype(np.float32)
-deviation = np.random.rand(110).astype(np.float32)
-y_data = x_data * 0.1 + 0.3 + (deviation - 0.5) * 0.01
-x = tf.placeholder(tf.float32, name="x-input")
-y = tf.placeholder(tf.float32, name='y-input')
+x = np.random.rand(length).astype(np.float32)
+deviation = np.random.rand(length).astype(np.float32)
+y = x * 0.1 + 0.3 + (deviation - 0.5) * 0.01
 
-### create tensorflow structure start ###
-Weights = tf.Variable(tf.random_uniform([1], -1.0, 1.0))
-biases = tf.Variable(tf.zeros([1]))
+one = np.mat(np.ones((length, 1)))
 
-y_ = Weights * x + biases
+plt.scatter(x, y)
 
-batch_size = 10
+plt.show()
 
-loss = tf.losses.mean_squared_error(y, y_)
-loss = tf.reduce_mean(tf.square(y - y_))+tf.contrib.layers.l2_regularizer(0.01)(Weights)
-# loss = tf.reduce_sum(tf.square(y - y_))
-optimizer = tf.train.GradientDescentOptimizer(0.5)
-# optimizer = tf.train.AdamOptimizer(0.5)
-train = optimizer.minimize(loss)
+w = 0
+b = 0
+alpha = 1
 
-### create tensorflow structure end ###
 
-sess = tf.Session()
-# tf.initialize_all_variables() no long valid from
-# 2017-03-02 if using tensorflow >= 0.12
-print(tf.__version__)
+def h(arg_w, arg_b):
+    return x * arg_w + arg_b
 
-init = tf.global_variables_initializer()
-sess.run(init)
 
-# print(sess.run(Weights))
+delta = y - h(w, b)
+last = np.dot(delta, delta)
 
-for step in range(301):
-    start = (step * batch_size) % 100
-    end = start + batch_size
-    t, l = sess.run([train, loss], feed_dict={x: x_data[start:end], y: y_data[start:end]})
+count = 0
+while True:
 
-    # sess.run(train)
-    if step % 2 == 0:
-        print(step, sess.run(Weights), sess.run(biases), l)
+    theta = np.mat(delta) * np.mat(x).T
+    nw = w + alpha * theta[0, 0]
+    theta = np.mat(delta) * one
+    nb = b + alpha * theta[0, 0]
+
+    cur_delta = y - h(nw, nb)
+    current = np.dot(cur_delta, cur_delta)
+    if current > last:
+        alpha /= 2
+        continue
+
+    last = current
+    delta = cur_delta
+    if alpha < 0.01:
+        break
+
+    w = nw
+    b = nb
+
+    print('alpha=', alpha)
+    print(w, b)
+
+    count += 1
+
+print(count)
