@@ -37,8 +37,11 @@ count = 0
 while True:
 
     theta = np.mat(delta) * np.mat(x).T
+    evalue = abs(theta[0, 0])
     nw = w + alpha * theta[0, 0]
+
     theta = np.mat(delta) * one
+    evalue += abs(theta[0, 0])
     nb = b + alpha * theta[0, 0]
 
     cur_delta = y - h(nw, nb)
@@ -47,17 +50,18 @@ while True:
         alpha /= 2
         continue
 
+    if evalue < 0.001:
+        break
+
     last = current
     delta = cur_delta
-    if alpha < 0.01:
-        break
 
     w = nw
     b = nb
 
-    print('alpha=', alpha)
-    print(w, b)
-
     count += 1
 
+print('evalue=', evalue)
+print('alpha=', alpha)
+print(w, b)
 print(count)
