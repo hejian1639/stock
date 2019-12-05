@@ -6,7 +6,6 @@
 """
 Please note, this code is only for python 3+. If you are using python 2+, please modify the code accordingly.
 """
-import matplotlib.pyplot as plt
 import numpy as np
 
 length = 100
@@ -15,53 +14,56 @@ x = np.random.rand(length).astype(np.float32)
 deviation = np.random.rand(length).astype(np.float32)
 y = x * 0.1 + 0.3 + (deviation - 0.5) * 0.01
 
-one = np.mat(np.ones((length, 1)))
-
-plt.scatter(x, y)
-
-plt.show()
-
-w = 0
-b = 0
-alpha = 1
+one = np.ones(length)
 
 
-def h(arg_w, arg_b):
-    return x * arg_w + arg_b
+# plt.scatter(x, y)
+#
+# plt.show()
 
 
-delta = y - h(w, b)
-last = np.dot(delta, delta)
+def h(arg_w, arg_x):
+    return np.dot(arg_w, arg_x)
 
-count = 0
-while True:
 
-    theta = np.mat(delta) * np.mat(x).T
-    evalue = abs(theta[0, 0])
-    nw = w + alpha * theta[0, 0]
+x = np.vstack([x, one])
 
-    theta = np.mat(delta) * one
-    evalue += abs(theta[0, 0])
-    nb = b + alpha * theta[0, 0]
 
-    cur_delta = y - h(nw, nb)
-    current = np.dot(cur_delta, cur_delta)
-    if current > last:
-        alpha /= 2
-        continue
+def back_propgation(arg_x, arg_y, w, hypothesis, alpha):
+    delta = arg_y - hypothesis(w, arg_x)
 
-    if evalue < 0.001:
-        break
+    last = np.dot(delta, np.transpose(delta))
 
-    last = current
-    delta = cur_delta
+    count = 0
 
-    w = nw
-    b = nb
+    while True:
 
-    count += 1
+        theta = np.dot(delta, np.transpose(x))
+        nw = w + np.dot(alpha, theta)
 
-print('evalue=', evalue)
-print('alpha=', alpha)
-print(w, b)
-print(count)
+        evalue = np.dot(theta, np.transpose(theta))[0, 0]
+
+        cur_delta = y - h(nw, x)
+        current = np.dot(cur_delta, np.transpose(cur_delta))
+        if current > last:
+            alpha /= 2
+            continue
+
+        if evalue < 0.00001:
+            break
+
+        last = current
+        delta = cur_delta
+
+        w = nw
+
+        count += 1
+
+    print('evalue=', evalue)
+    print('alpha=', alpha)
+    print(count)
+
+    return w
+
+
+print(back_propgation(x, y, np.zeros((1, 2)), h, 1))
