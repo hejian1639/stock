@@ -21,7 +21,7 @@ def lwlr(x_i, x, y, k=1.0):
         diff = x[j] - x_i
 
         # 采用高斯核函数进行权重赋值，样本附近点将被赋予更高权重
-        w[j] = weights[j, j] = np.exp(-diff * diff / k) / np.sqrt(2 * np.pi)
+        w[j] = weights[j, j] = np.exp(-diff * diff / k)
 
     theta = (xMat * weights * xMat.T).I * xMat * weights * np.mat(y).T
     print(theta)
@@ -45,8 +45,8 @@ bias = 0
 length = 100
 # create data
 x = np.random.rand(length).astype(np.float32)
-# x *= 2
-# x -= 1
+x *= 2
+x -= 1
 
 y = np.power(x, 2)  # shape (100, 1) + some noise
 

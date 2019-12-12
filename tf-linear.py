@@ -25,10 +25,9 @@ y_ = Weights * x + biases
 batch_size = 10
 
 loss = tf.losses.mean_squared_error(y, y_)
-# loss = tf.reduce_mean(tf.square(y - y_)) + tf.contrib.layers.l2_regularizer(0.01)(Weights)
-# loss = tf.reduce_sum(tf.square(y - y_))
-optimizer = tf.train.GradientDescentOptimizer(0.5)
-# optimizer = tf.train.AdamOptimizer(0.5)
+loss = tf.reduce_sum(tf.square(y - y_))
+optimizer = tf.train.GradientDescentOptimizer(1)
+optimizer = tf.train.AdagradOptimizer(1)
 train = optimizer.minimize(loss)
 
 ### create tensorflow structure end ###
