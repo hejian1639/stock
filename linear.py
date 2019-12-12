@@ -11,28 +11,32 @@ import numpy as np
 length = 100
 # create data
 x = np.random.rand(length).astype(np.float32)
+z = np.random.rand(length).astype(np.float32)
 deviation = np.random.rand(length).astype(np.float32)
-y = x * 0.1 + 0.3 + (deviation - 0.5) * 0.01
+y = x * 0.1 + + z * 0.2 + 0.3 + (deviation - 0.5) * 0.01
 
 one = np.ones(length)
-
 
 # plt.scatter(x, y)
 #
 # plt.show()
+
+x = np.vstack([x, z, one])
 
 
 def h(arg_w, arg_x):
     return np.dot(arg_w, arg_x)
 
 
-x = np.vstack([x, one])
+def derivative(arg_y, hypothesis):
+    return arg_y - hypothesis
 
 
-def back_propgation(arg_x, arg_y, w, hypothesis, alpha):
-    delta = arg_y - hypothesis(w, arg_x)
+def back_propagation(arg_x, arg_y, w, hypothesis, alpha):
+    h_y = hypothesis(w, arg_x)
+    delta = arg_y - h_y
 
-    last = np.dot(delta, np.transpose(delta))
+    loss = arg_y - h_y
 
     count = 0
 
@@ -43,16 +47,17 @@ def back_propgation(arg_x, arg_y, w, hypothesis, alpha):
 
         evalue = np.dot(theta, np.transpose(theta))[0, 0]
 
-        cur_delta = y - h(nw, x)
-        current = np.dot(cur_delta, np.transpose(cur_delta))
-        if current > last:
+        h_y = hypothesis(nw, arg_x)
+        cur_delta = arg_y - h_y
+        current = arg_y - h_y
+        if current > loss:
             alpha /= 2
             continue
 
         if evalue < 0.00001:
             break
 
-        last = current
+        loss = current
         delta = cur_delta
 
         w = nw
@@ -66,4 +71,4 @@ def back_propgation(arg_x, arg_y, w, hypothesis, alpha):
     return w
 
 
-print(back_propgation(x, y, np.zeros((1, 2)), h, 1))
+print(back_propagation(x, y, np.zeros((1, 3)), h, 1, derivative))
