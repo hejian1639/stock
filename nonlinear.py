@@ -9,16 +9,6 @@ Please note, this code is only for python 3+. If you are using python 2+, please
 import numpy as np
 import matplotlib.pyplot as plt
 
-x = np.linspace(-2, 2, 10)
-
-y = x ** 2
-
-plt.scatter(x, y)
-
-plt.show()
-
-one = np.ones(len(x))
-
 
 def sigmod(arg_x, deriv=False):
     if (deriv == True):
@@ -53,7 +43,8 @@ def relu(arg_x, deriv=False):
             if i > 0:
                 i[...] = 1
             else:
-                i[...] = 0
+                i[...] = 0.1
+                # i[...] = 0
         return ret
     else:
         ret = arg_x.copy()
@@ -63,12 +54,34 @@ def relu(arg_x, deriv=False):
         return ret
 
 
+def lrelu(l):
+    def inner(arg_x, deriv=False):
+        if (deriv == True):
+            ret = arg_x.flatten()
+            for i in np.nditer(ret, op_flags=['readwrite']):
+                if i > 0:
+                    i[...] = 1
+                else:
+                    i[...] = l
+            return ret
+
+        ret = arg_x.copy()
+        for i in np.nditer(ret, op_flags=['readwrite']):
+            if i < 0:
+                i[...] = l * i
+        return ret
+
+    return inner
+
+
 def back_propagation(arg_x, arg_y, w1, w2, activation):
-    count = 0
+    print('w1 = ', w1)
+    print('w2 = ', w2)
 
     alpha = 1
 
-    while True:
+    for count in range(1000):
+
 
         h1 = np.dot(w1, arg_x)
         active = activation(h1)
@@ -77,10 +90,21 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
         loss_derivative = arg_y - h2
         loss = np.dot(loss_derivative, np.transpose(loss_derivative))[0, 0]
 
-        derivative = np.dot(loss_derivative, np.transpose(active))
+        w2_delta = np.dot(loss_derivative, np.transpose(active))
+
+        [row, col] = w1.shape
+
+        derivative = np.kron(np.transpose(arg_x), np.eye(row))
+        active_derivative = activation(active, deriv=True)
+        derivative = np.dot(np.diag(active_derivative), derivative)
+        derivative = np.dot(np.kron(loss_derivative, w2), derivative)
+        w1_delta = np.transpose(derivative.reshape(col, row))
 
         while True:
-            nw2 = w2 + np.dot(alpha, derivative)
+            nw1 = w1 + alpha * w1_delta
+            nw2 = w2 + alpha * w2_delta
+            h1 = np.dot(nw1, arg_x)
+            active = activation(h1)
             h2 = np.dot(nw2, active)
 
             loss_derivative = arg_y - h2
@@ -89,50 +113,33 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
                 alpha /= 2
                 continue
 
+            w1 = nw1
             w2 = nw2
 
             break
 
         alpha *= 2
 
-        h1 = np.dot(w1, arg_x)
-        active = activation(h1)
-        h2 = np.dot(w2, active)
+        # if loss < 0.01:
+        #     break
 
-        loss_derivative = arg_y - h2
-        loss = np.dot(loss_derivative, np.transpose(loss_derivative))[0, 0]
-
-        [row, col] = w1.shape
-
-        derivative = np.kron(np.transpose(arg_x), np.eye(row))
-        active_derivative = activation(active, deriv=True)
-        derivative = np.dot(np.diag(active_derivative), derivative)
-        derivative = np.dot(np.kron(loss_derivative, w2), derivative)
-        derivative = np.transpose(derivative.reshape(col, row))
-        # derivative = derivative.reshape(row, col)
-
-        while True:
-            nw1 = w1 + np.dot(alpha, derivative)
-            h1 = np.dot(nw1, arg_x)
+        if count % 100 == 0:
+            h1 = np.dot(w1, np.vstack([X, one]))
             active = activation(h1)
             h2 = np.dot(w2, active)
 
             loss_derivative = arg_y - h2
-            current = np.dot(loss_derivative, np.transpose(loss_derivative))[0, 0]
-            if current > loss:
-                alpha /= 2
-                continue
+            loss = np.dot(loss_derivative, np.transpose(loss_derivative))[0, 0]
 
-            w1 = nw1
+            print('loss=', loss)
+            print('alpha=', alpha)
+            print(count)
+            print('w1 = ', w1)
+            print('w2 = ', w2)
 
-            break
+            plt.scatter(X, h2)
 
-        alpha *= 2
-
-        if count > 100:
-            break
-
-        count += 1
+            plt.show()
 
     print('loss=', loss)
     print('alpha=', alpha)
@@ -141,17 +148,17 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
     return w1, w2
 
 
-w1, w2 = back_propagation(np.vstack([x, one]), y,
-                          np.array([[-1.0, 0.0], [0.0, 0.0], [1.0, 0.0]]),
-                          np.array([[0.0, 0.0, 0.0]]), relu)
+X = np.linspace(-1, 1, 5)
+one = np.ones(len(X))
 
-print(w1)
-print(w2)
+Y = X ** 2
 
-h1 = np.dot(w1, np.vstack([x, one]))
-active = relu(h1)
-h2 = np.dot(w2, active)
-
-plt.scatter(x, h2)
+plt.scatter(X, Y)
 
 plt.show()
+
+hide_dim = 5
+w1, w2 = back_propagation(np.vstack([X, one]), Y,
+                          np.random.normal(0, 1, 2 * hide_dim).reshape(hide_dim, 2),
+                          np.zeros((1, hide_dim)),
+                          relu)
