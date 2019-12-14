@@ -43,8 +43,7 @@ def relu(arg_x, deriv=False):
             if i > 0:
                 i[...] = 1
             else:
-                i[...] = 0.1
-                # i[...] = 0
+                i[...] = 0
         return ret
     else:
         ret = arg_x.copy()
@@ -80,8 +79,7 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
 
     alpha = 1
 
-    for count in range(1000):
-
+    for count in range(10000):
 
         h1 = np.dot(w1, arg_x)
         active = activation(h1)
@@ -95,7 +93,7 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
         [row, col] = w1.shape
 
         derivative = np.kron(np.transpose(arg_x), np.eye(row))
-        active_derivative = activation(active, deriv=True)
+        active_derivative = activation(active.T, deriv=True)
         derivative = np.dot(np.diag(active_derivative), derivative)
         derivative = np.dot(np.kron(loss_derivative, w2), derivative)
         w1_delta = np.transpose(derivative.reshape(col, row))
@@ -109,7 +107,7 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
 
             loss_derivative = arg_y - h2
             current = np.dot(loss_derivative, np.transpose(loss_derivative))[0, 0]
-            if current > loss:
+            if current - loss > 0:
                 alpha /= 2
                 continue
 
@@ -118,18 +116,16 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
 
             break
 
-        alpha *= 2
-
         # if loss < 0.01:
         #     break
 
         if count % 100 == 0:
-            h1 = np.dot(w1, np.vstack([X, one]))
-            active = activation(h1)
-            h2 = np.dot(w2, active)
-
-            loss_derivative = arg_y - h2
-            loss = np.dot(loss_derivative, np.transpose(loss_derivative))[0, 0]
+            # h1 = np.dot(w1, np.vstack([X, one]))
+            # active = activation(h1)
+            # h2 = np.dot(w2, active)
+            #
+            # loss_derivative = arg_y - h2
+            # loss = np.dot(loss_derivative, np.transpose(loss_derivative))[0, 0]
 
             print('loss=', loss)
             print('alpha=', alpha)
@@ -141,6 +137,8 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
 
             plt.show()
 
+        alpha *= 2
+
     print('loss=', loss)
     print('alpha=', alpha)
     print(count)
@@ -148,7 +146,7 @@ def back_propagation(arg_x, arg_y, w1, w2, activation):
     return w1, w2
 
 
-X = np.linspace(-1, 1, 5)
+X = np.linspace(-1, 1, 50)
 one = np.ones(len(X))
 
 Y = X ** 2
@@ -157,8 +155,10 @@ plt.scatter(X, Y)
 
 plt.show()
 
-hide_dim = 5
-w1, w2 = back_propagation(np.vstack([X, one]), Y,
-                          np.random.normal(0, 1, 2 * hide_dim).reshape(hide_dim, 2),
-                          np.zeros((1, hide_dim)),
-                          relu)
+hide_dim = 10
+
+w1 = np.random.normal(0, 1, 2 * hide_dim).reshape(hide_dim, 2)
+# w1 = np.ones(2 * hide_dim).reshape(hide_dim, 2)
+w2 = np.zeros((1, hide_dim))
+
+w1, w2 = back_propagation(np.vstack([X, one]), Y, w1, w2, relu)
