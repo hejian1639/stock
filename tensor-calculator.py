@@ -31,12 +31,54 @@ class Variable:
         return Operator(self, scalar, '*')
 
     def derivative(self):
-        matrix = np.zeros(Variable.count)
+        matrix = []
+        for i in range(Variable.count):
+            matrix.append(0)
+
         matrix[self.index] = 1
-        return matrix
+        return DeviationVariable(matrix)
 
     def run(self):
         return self.value
+
+
+class DeviationVariable:
+    def __init__(self, v):
+        self.vector = v
+
+    def __mul__(self, scalar):
+        for i in range(0, len(self.vector)):
+            v = self.vector[i]
+            self.vector[i] = v * scalar
+
+        return DeviationVariable(self.vector)
+
+    def __rmul__(self, scalar):
+        return self.__mul__(scalar)
+
+    def __add__(self, other):
+        for i in range(0, len(self.vector)):
+            v = self.vector[i]
+            self.vector[i] = v + other
+
+        return DeviationVariable(self.vector)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        for i in range(0, len(self.vector)):
+            v = self.vector[i]
+            self.vector[i] = v - other
+
+        return DeviationVariable(self.vector)
+
+    def __rsub__(self, other):
+        for i in range(0, len(self.vector)):
+            v = self.vector[i]
+            self.vector[i] = other - v
+
+        return DeviationVariable(self.vector)
 
 
 class Input:
@@ -168,7 +210,7 @@ loss = sum((y - t_y) ** 2)
 print(run(t_y, {x: data_x}))
 print(run(loss, {x: data_x, y: data_y}))
 
-loss.derivative().run()
+print(loss.derivative().run())
 # train = minimize(loss)
 # run(train)
 #
