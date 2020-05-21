@@ -9,10 +9,12 @@ data_y = data_x * 0.1 + 0.3 + (deviation - 0.5) * 0.01
 
 class Variable:
     count = 0
+    list = []
 
     def __init__(self, v):
         self.value = v
         self.index = Variable.count
+        Variable.list.append(self)
         Variable.count += 1
 
     def __add__(self, other):
@@ -198,9 +200,16 @@ class Sum:
 
 class Training:
     def __init__(self, e):
-        self.express = e.derivative()
+        self.express = e
+        self.derivative = e.derivative()
+        self.step = 0.0001
 
     def run(self):
+        derivative = self.derivative.run()
+
+        for (v, d) in zip(Variable.list, derivative.vector):
+            v.value -= self.step * d
+
         return self.express.run()
 
 
@@ -234,8 +243,9 @@ print(run(t_y, {x: data_x}))
 print(run(loss, {x: data_x, y: data_y}))
 
 train = minimize(loss)
-res = run(train, {x: data_x, y: data_y})
-print(res)
-#
-# for step in range(100):
-#     run(train)
+# res = run(train, {x: data_x, y: data_y})
+# print(res)
+
+for step in range(20):
+    print('loss = ', run(train, {x: data_x, y: data_y}))
+    print('w = ', run(w), ' b = ', run(b))
