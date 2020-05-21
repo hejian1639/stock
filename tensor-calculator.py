@@ -47,38 +47,60 @@ class DeviationVariable:
         self.vector = v
 
     def __mul__(self, scalar):
-        for i in range(0, len(self.vector)):
-            v = self.vector[i]
-            self.vector[i] = v * scalar
+        vector = []
+        for v in self.vector:
+            vector.append(v * scalar)
 
-        return DeviationVariable(self.vector)
+        return DeviationVariable(vector)
 
     def __rmul__(self, scalar):
         return self.__mul__(scalar)
 
     def __add__(self, other):
-        for i in range(0, len(self.vector)):
-            v = self.vector[i]
-            self.vector[i] = v + other
+        vector = []
+        if isinstance(other, DeviationVariable):
+            for (v, o) in zip(self.vector, other.vector):
+                vector.append(v + o)
+        else:
+            for v in self.vector:
+                vector.append(v + other)
 
-        return DeviationVariable(self.vector)
+        return DeviationVariable(vector)
 
     def __radd__(self, other):
         return self.__add__(other)
 
     def __sub__(self, other):
-        for i in range(0, len(self.vector)):
-            v = self.vector[i]
-            self.vector[i] = v - other
+        vector = []
+        if isinstance(other, DeviationVariable):
+            for (v, o) in zip(self.vector, other.vector):
+                vector.append(v - o)
+        else:
+            for v in self.vector:
+                vector.append(v - other)
 
-        return DeviationVariable(self.vector)
+        return DeviationVariable(vector)
 
     def __rsub__(self, other):
-        for i in range(0, len(self.vector)):
-            v = self.vector[i]
-            self.vector[i] = other - v
+        vector = []
+        if isinstance(other, DeviationVariable):
+            for (v, o) in zip(self.vector, other.vector):
+                vector.append(o - v)
+        else:
+            for v in self.vector:
+                vector.append(other - v)
 
-        return DeviationVariable(self.vector)
+        return DeviationVariable(vector)
+
+    def sum(self):
+        vector = []
+        for v in self.vector:
+            if isinstance(v, DeviationVariable):
+                vector.append(v.sum())
+            else:
+                vector.append(np.sum(v))
+
+        return DeviationVariable(vector)
 
 
 class Input:
@@ -163,7 +185,8 @@ class Sum:
 
     def run(self):
         array = self.array.run()
-
+        if isinstance(array, DeviationVariable):
+            return array.sum()
         return np.sum(array)
 
     def gradientDescent(self):
@@ -178,7 +201,7 @@ class Training:
         self.express = e.derivative()
 
     def run(self):
-        self.express.run()
+        return self.express.run()
 
 
 def sum(array):
@@ -194,7 +217,7 @@ def run(train, feed_dict=None):
         for feed, feed_val in feed_dict.items():
             feed.setValue(feed_val)
 
-    if type(train) in (Variable, Input, Operator, Sum):
+    if type(train) in (Variable, Input, Operator, Sum, Training):
         return train.run()
     return train
 
@@ -210,9 +233,9 @@ loss = sum((y - t_y) ** 2)
 print(run(t_y, {x: data_x}))
 print(run(loss, {x: data_x, y: data_y}))
 
-print(loss.derivative().run())
-# train = minimize(loss)
-# run(train)
+train = minimize(loss)
+res = run(train, {x: data_x, y: data_y})
+print(res)
 #
 # for step in range(100):
 #     run(train)
