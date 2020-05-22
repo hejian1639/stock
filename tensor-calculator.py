@@ -2,8 +2,13 @@
 import numpy as np
 
 length = 100
+np.random.seed(1)
 data_x = np.random.rand(length).astype(np.float32)
+# print('data_x = ', data_x)
+
+np.random.seed(2)
 deviation = np.random.rand(length).astype(np.float32)
+# print('deviation = ', deviation)
 data_y = data_x * 0.1 + 0.3 + (deviation - 0.5) * 0.01
 
 
@@ -48,6 +53,9 @@ class DeviationVariable:
     def __init__(self, v):
         self.vector = v
 
+    def __str__(self):
+        return '%s' % self.vector
+
     def __mul__(self, scalar):
         vector = []
         for v in self.vector:
@@ -57,6 +65,16 @@ class DeviationVariable:
 
     def __rmul__(self, scalar):
         return self.__mul__(scalar)
+
+    def __matmul__(self, mat):
+        vector = []
+        for v in self.vector:
+            vector.append(v * mat)
+
+        return DeviationVariable(vector)
+
+    def __rmatmul__(self, mat):
+        return self.__matmul__(mat)
 
     def __add__(self, other):
         vector = []
@@ -153,7 +171,7 @@ class Operator:
     def derivative(self):
 
         if self.operator == '**':
-            return Operator(self.b, self.a.derivative(), '*')
+            return Operator(self.a * self.b, self.a.derivative(), '*')
 
         if self.operator == '-':
             return Operator(self.a.derivative(), self.b.derivative(), '-')
@@ -175,7 +193,11 @@ class Operator:
             return run(self.a) + run(self.b)
 
         if self.operator == '*':
-            return run(self.a) * run(self.b)
+            a = run(self.a)
+            b = run(self.b)
+            if isinstance(b, DeviationVariable):
+                return b * a
+            return a * b
 
 
 class Sum:
@@ -188,29 +210,36 @@ class Sum:
     def run(self):
         array = self.array.run()
         if isinstance(array, DeviationVariable):
-            return array.sum()
-        return np.sum(array)
+            vector = []
+            for v in array.vector:
+                vector.append(np.sum(v))
 
-    def gradientDescent(self):
-        self.loss = 0
-        for i in self.array:
-            self.loss += i.gradientDescent()
-        return self.loss
+            return DeviationVariable(vector)
+        return np.sum(array)
 
 
 class Training:
     def __init__(self, e):
         self.express = e
         self.derivative = e.derivative()
-        self.step = 0.0001
+        self.step = 1
 
     def run(self):
         derivative = self.derivative.run()
 
+        old = self.express.run()
         for (v, d) in zip(Variable.list, derivative.vector):
             v.value -= self.step * d
+        loss = self.express.run()
 
-        return self.express.run()
+        while loss > old:
+            self.step /= 2
+            for (v, d) in zip(Variable.list, derivative.vector):
+                v.value += self.step * d
+
+            loss = self.express.run()
+
+        return loss
 
 
 def sum(array):
@@ -237,15 +266,22 @@ x = Input()
 y = Input()
 t_y = w * x + b
 
-loss = sum((y - t_y) ** 2)
+# derivative = ((w * x) ** 2).derivative()
+# res = run(derivative, {x: data_x, y: data_y})
+# print('derivative = ', res)
 
-print(run(t_y, {x: data_x}))
-print(run(loss, {x: data_x, y: data_y}))
+# derivative = ((y - t_y) ** 2).derivative()
+# res = run(derivative, {x: data_x, y: data_y})
+# print('derivative = ', res)
+
+loss = sum((y - t_y) ** 2)
+# derivative = loss.derivative()
+# res = run(derivative, {x: data_x, y: data_y})
+# print('derivative = ', res)
+
 
 train = minimize(loss)
-# res = run(train, {x: data_x, y: data_y})
-# print(res)
 
-for step in range(20):
+for step in range(100):
     print('loss = ', run(train, {x: data_x, y: data_y}))
-    print('w = ', run(w), ' b = ', run(b))
+    print('w = ', run(w), ' b = ', run(b), 'step = ', train.step)

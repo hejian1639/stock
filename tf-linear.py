@@ -6,45 +6,47 @@
 """
 Please note, this code is only for python 3+. If you are using python 2+, please modify the code accordingly.
 """
-# from __future__ import print_function
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 # create data
-x_data = np.random.rand(110).astype(np.float32)
-deviation = np.random.rand(110).astype(np.float32)
+np.random.seed(1)
+x_data = np.random.rand(100).astype(np.float32)
+np.random.seed(2)
+deviation = np.random.rand(100).astype(np.float32)
 y_data = x_data * 0.1 + 0.3 + (deviation - 0.5) * 0.01
 x = tf.placeholder(tf.float32, name="x-input")
 y = tf.placeholder(tf.float32, name='y-input')
 
-Weights = tf.Variable(tf.random_uniform([1], -1.0, 1.0))
-biases = tf.Variable(tf.zeros([1]))
+Weights = tf.Variable(tf.random_uniform([1], -1.0, 1.0), "Weights")
+Weights = tf.Variable(tf.zeros([1]), "Weights")
+biases = tf.Variable(tf.zeros([1]), "biases")
 
 y_ = Weights * x + biases
+tf.summary.tensor_summary('y', y_)
 
 batch_size = 10
 
 loss = tf.losses.mean_squared_error(y, y_)
-loss = tf.reduce_sum(tf.square(y - y_))
-optimizer = tf.train.GradientDescentOptimizer(1)
-optimizer = tf.train.AdagradOptimizer(1)
+loss = tf.reduce_sum((y - y_) ** 2)
+tf.summary.scalar('loss', loss)  # add loss to scalar summary
+optimizer = tf.train.GradientDescentOptimizer(0.001)
+# optimizer = tf.train.AdagradOptimizer(1)
 train = optimizer.minimize(loss)
+
+writer = tf.summary.FileWriter("tf-linear", tf.get_default_graph())
+writer.close()
 
 ### create tensorflow structure end ###
 
-sess = tf.Session()
 print(tf.__version__)
 
-init = tf.global_variables_initializer()
-sess.run(init)
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
 
-# print(sess.run(Weights))
+    print(sess.run(y_, feed_dict={x: x_data}))
 
-for step in range(100):
-    start = (step * batch_size) % 100
-    end = start + batch_size
-    t, l = sess.run([train, loss], feed_dict={x: x_data[start:end], y: y_data[start:end]})
+    for step in range(10):
+        _, l = sess.run([train, loss], feed_dict={x: x_data, y: y_data})
 
-    # sess.run(train)
-    # if step % 2 == 0:
-    print(step, sess.run(Weights), sess.run(biases), l)
+        print(step, sess.run(Weights), sess.run(biases), l)
