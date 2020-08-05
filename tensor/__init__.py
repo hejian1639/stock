@@ -1,1 +1,1 @@
-from .tensor import Variable, Input, sum, minimize, run
+from .tensor import Variable, Input, sum, minimize, run, relu

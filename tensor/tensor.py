@@ -2,7 +2,6 @@
 import numpy as np
 
 
-
 class Variable:
     count = 0
     list = []
@@ -251,3 +250,10 @@ def run(train, feed_dict=None):
     return train
 
 
+class Relu:
+    def __init__(self, e):
+        pass
+
+
+def relu(e):
+    return Relu(e)
